@@ -2,7 +2,7 @@
 Codes, functions and data for calculation of gas exchange in whole-plant chambers
 
 
-# a) Input data
+## a) Input data
 
 DataCIRAS.csv
   Extracted data from first sheet in excel files VPD...xlsx, Includes data from CIRAS3DC, PAR, and T/RH sensors
@@ -20,7 +20,7 @@ Alldata.csv
   Combined dataset including all input data from different sources, grouped by 10 min slots
 
 
-# b) Outputs
+## b) Outputs
 
 Alldatacalc3d.csv
   Initial output file including E, A, Tleaf, VPDleaf, gtotal and gs calculations, grouped by 10 min. Each chamber has its own column
@@ -32,7 +32,7 @@ dataset.csv
   Final working dataset used for figures and calculations, hourly means of the key output variables
 
 
-# c) Codes
+## c) Codes
 
 VPDATOR_calculation.R
   Main R script for data arrangement, statistics and calculations, including the functions used to determine boundary layer conductance, modelled leaf temperature and chamber gas exchange
