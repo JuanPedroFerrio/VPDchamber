@@ -72,7 +72,7 @@ DATACIRASsum <- function(filename){
   # Creates "cycle" variable, idenfified as the time when the change in position is <0 (i.e. from 6 to 1)
   # This will be used to summarise by cycle. Instead of using a fixed time,
   # so we maximise the time resolution to the cycle duration
-  DataCIRAS<-DataCIRAS %>% as_tibble() %>% mutate(Cycle = cumsum( c(1, diff(Position)) < 0 ) )
+  DataCIRAS<-DataCIRAS %>% as_tibble() %>% dplyr::mutate(Cycle = cumsum( c(1, diff(Position)) < 0 ) )
   
   # Caculates differential values (dC, dH)
   # for CO2 we use REFCO2_7 (input air measured through analyzer IRGA), 
@@ -80,7 +80,7 @@ DATACIRASsum <- function(filename){
   # for H2O we use H2Or (input air measured through reference IRGA)
   # because H2O is less sensitive to matching, and we observe a larger
   # memory effect for H2O measured in REFH2O_7
-  DataCIRAS<-mutate(DataCIRAS,
+  DataCIRAS<-dplyr::mutate(DataCIRAS,
                     dC_1=CO2_1-REFCO2_7,dC_2=CO2_2-REFCO2_7,dC_3=CO2_3-REFCO2_7,
                     dC_4=CO2_4-REFCO2_7,dC_5=CO2_5-REFCO2_7,dC_6=CO2_6-REFCO2_7,
                     dH_1=H2O_1-H2Or,dH_2=H2O_2-H2Or,dH_3=H2O_3-H2Or,
@@ -93,7 +93,7 @@ DATACIRASsum <- function(filename){
   # measurement time of each chamber after summarising by cycle
   # because the periods without measurement will be omitted
   #
-  DataCIRAS<-mutate(DataCIRAS,
+  DataCIRAS<-dplyr::mutate(DataCIRAS,
                     Tc_1=Tc_1*dC_1/dC_1,Tc_2=Tc_2*dC_2/dC_2,Tc_3=Tc_3*dC_3/dC_3,
                     Tc_4=Tc_4*dC_4/dC_4,Tc_5=Tc_5*dC_5/dC_5,Tc_6=Tc_6*dC_6/dC_6,
                     HR_1=HR_1*dC_1/dC_1,HR_2=HR_2*dC_2/dC_2,HR_3=HR_3*dC_3/dC_3,
@@ -102,13 +102,13 @@ DATACIRASsum <- function(filename){
                     PAR_4=PAR_4*dC_4/dC_4,PAR_5=PAR_5*dC_5/dC_5,PAR_6=PAR_6*dC_6/dC_6)
  
   # adds VP ext and chamber
-  DataCIRAS<-mutate(DataCIRAS,
+  DataCIRAS<-dplyr::mutate(DataCIRAS,
                     e_1=esat(Tc_1)*HR_1/100,e_2=esat(Tc_2)*HR_2/100,
                     e_3=esat(Tc_3)*HR_3/100,e_4=esat(Tc_4)*HR_4/100,
                     e_5=esat(Tc_5)*HR_5/100,e_6=esat(Tc_6)*HR_6/100,
                     e_ext=esat(T_ext)*HR_ext/100)
   # adds vpd ext and chamber
-  DataCIRAS<-mutate(DataCIRAS,
+  DataCIRAS<-dplyr::mutate(DataCIRAS,
                     VPD_1=esat(Tc_1)-e_1,VPD_2=esat(Tc_2)-e_2,
                     VPD_3=esat(Tc_3)-e_3,VPD_4=esat(Tc_4)-e_4,
                     VPD_5=esat(Tc_5)-e_5,VPD_6=esat(Tc_6)-e_6,
@@ -346,11 +346,11 @@ CIRAS <- function(Dataset=tibble(Time10MIN=1,P=980,eout=45,deltaH=12,
   Cp<-29.2 # in J mol-1 K-1 # Barbour et al. 2000
   # Evaporation latent heat; L (J mol-1)
   # LatHeat<-44012 # in Barbour et al. 2000
-  Dataset<-mutate(Dataset,LatHeat=45064.3-(Tair*42.9)) 
+  Dataset<-dplyr::mutate(Dataset,LatHeat=45064.3-(Tair*42.9)) 
   # Sets LHE "light harvesting efficiency"
   # associated to crown arquitecture and self-shading
   # Esteso et al. 2006, Annals For. Sci
-  Dataset<-mutate(Dataset,
+  Dataset<-dplyr::mutate(Dataset,
             LHE=case_when(startsWith(Sp,"ile") ~ 0.62,
                           startsWith(Sp,"coc") ~ 0.61,
                           startsWith(Sp,"fag") ~ 0.69,
@@ -365,44 +365,44 @@ CIRAS <- function(Dataset=tibble(Time10MIN=1,P=980,eout=45,deltaH=12,
   # * LHE "light harvesting efficiency"
   # associated to crown arquitecture and self-shading
   # Esteso et al. 2006, Annals For. Sci
-  Dataset<-mutate(Dataset,H=PAR*0.5*0.5*LHE)
+  Dataset<-dplyr::mutate(Dataset,H=PAR*0.5*0.5*LHE)
 
   # convert Total Leaf Area cm2 to m2
-  Dataset<-mutate(Dataset,Atotal=Atotal/10000)
-  Dataset<-mutate(Dataset,LeafArea=LeafArea/10000) # Leaf area
+  Dataset<-dplyr::mutate(Dataset,Atotal=Atotal/10000)
+  Dataset<-dplyr::mutate(Dataset,LeafArea=LeafArea/10000) # Leaf area
   # convert volume flow L/min to L/s
-  Dataset<-mutate(Dataset,V0=Flow/60)
+  Dataset<-dplyr::mutate(Dataset,V0=Flow/60)
   # ein = eout-deltaH
-  Dataset<-mutate(Dataset,ein=eout-deltaH)
+  Dataset<-dplyr::mutate(Dataset,ein=eout-deltaH)
   # CO2in = CO2out-deltaC
-  Dataset<-mutate(Dataset,CO2in=CO2out-deltaC)
+  Dataset<-dplyr::mutate(Dataset,CO2in=CO2out-deltaC)
   # CALCULATIONS
   # (A.1) volume flow in L/s to mass flow in mmol m-2 s-1)
-  Dataset<-mutate(Dataset,W=V0*(1/22.414)/Atotal)
+  Dataset<-dplyr::mutate(Dataset,W=V0*(1/22.414)/Atotal)
   # (A.5) E in mol m-2 s-1 from eout, ein and W
-  Dataset<-mutate(Dataset,E=(W*(eout-ein))/(P-eout))
+  Dataset<-dplyr::mutate(Dataset,E=(W*(eout-ein))/(P-eout))
   # A.14 in CIRAS MANUAL
-  Dataset<-mutate(Dataset,A=-((deltaC*W)+(CO2out*E)))
+  Dataset<-dplyr::mutate(Dataset,A=-((deltaC*W)+(CO2out*E)))
   
   ###### boundary layer resistance from Leaf Area, hypostomatous, following Ball et al 1988 ######
-  Dataset<-mutate(Dataset,rb=BOUNDARY(wind,LeafArea)) # in m2 s mol-1
+  Dataset<-dplyr::mutate(Dataset,rb=BOUNDARY(wind,LeafArea)) # in m2 s mol-1
   ###### sensible heat conductance ######
-  Dataset<-mutate(Dataset,rbH=rb/1.78) # in m2 s mol-1
+  Dataset<-dplyr::mutate(Dataset,rbH=rb/1.78) # in m2 s mol-1
   
   ##### Tleaf folowing Barbour et al. #####
-  Dataset<-mutate(Dataset,Tleaf=TleafBarbour(H,Tair,eout,P,E,rb))
+  Dataset<-dplyr::mutate(Dataset,Tleaf=TleafBarbour(H,Tair,eout,P,E,rb))
  
   ##### calculate eleaf from Tleaf, assuming saturation #####
-  Dataset<-mutate(Dataset,eleaf=esat(Tleaf))
+  Dataset<-dplyr::mutate(Dataset,eleaf=esat(Tleaf))
   
   # (A.9) gtotal from E in mmol m-2 s-1
-  Dataset<-mutate(Dataset,gtotal=(E*(P-(eleaf+eout)/2)/(eleaf-eout)))
+  Dataset<-dplyr::mutate(Dataset,gtotal=(E*(P-(eleaf+eout)/2)/(eleaf-eout)))
   # gs from gtotal and rb
-  Dataset<-mutate(Dataset,gs=1/(1/gtotal-rb))
+  Dataset<-dplyr::mutate(Dataset,gs=1/(1/gtotal-rb))
   # E, gtotal and gs to mmol m-2 s-1
-  Dataset<-mutate(Dataset,E=E*1000,gtotal=gtotal*1000,gs=gs*1000)
+  Dataset<-dplyr::mutate(Dataset,E=E*1000,gtotal=gtotal*1000,gs=gs*1000)
   # gs as eleaf-eout
-  Dataset<-mutate(Dataset,VPDleaf=eleaf-eout)
+  Dataset<-dplyr::mutate(Dataset,VPDleaf=eleaf-eout)
   # Clean output
   # output filters
   output<-filter(Dataset,gtotal>0 & gs<1500 & gs>0 & Flow > 20 & Flow <50)
@@ -446,11 +446,11 @@ CIRAS2 <- function(Dataset=tibble(Time10MIN=1,P=980,eout=45,edil=45,deltaH=12,
   Cp<-29.2 # in J mol-1 K-1 # Barbour et al. 2000
   # Evaporation latent heat; L (J mol-1)
   # LatHeat<-44012 # in Barbour et al. 2000
-  Dataset<-mutate(Dataset,LatHeat=45064.3-(Tair*42.9)) 
+  Dataset<-dplyr::mutate(Dataset,LatHeat=45064.3-(Tair*42.9)) 
   # Sets LHE "light harvesting efficiency"
   # associated to crown arquitecture and self-shading
   # Esteso et al. 2006, Annals For. Sci
-  Dataset<-mutate(Dataset,
+  Dataset<-dplyr::mutate(Dataset,
                   LHE=case_when(startsWith(Sp,"ile") ~ 0.62,
                                 startsWith(Sp,"coc") ~ 0.61,
                                 startsWith(Sp,"fag") ~ 0.69,
@@ -465,69 +465,69 @@ CIRAS2 <- function(Dataset=tibble(Time10MIN=1,P=980,eout=45,edil=45,deltaH=12,
   # * LHE "light harvesting efficiency"
   # associated to crown arquitecture and self-shading
   # Esteso et al. 2006, Annals For. Sci
-  Dataset<-mutate(Dataset,H=PAR*0.5*0.5*LHE)
+  Dataset<-dplyr::mutate(Dataset,H=PAR*0.5*0.5*LHE)
   
   # convert Total Leaf Area cm2 to m2
-  Dataset<-mutate(Dataset,Atotal=Atotal/10000)
-  Dataset<-mutate(Dataset,LeafArea=LeafArea/10000) # Leaf area
+  Dataset<-dplyr::mutate(Dataset,Atotal=Atotal/10000)
+  Dataset<-dplyr::mutate(Dataset,LeafArea=LeafArea/10000) # Leaf area
   # convert volume flow L/min to L/s
-  Dataset<-mutate(Dataset,V0=Flow/60)
+  Dataset<-dplyr::mutate(Dataset,V0=Flow/60)
   # ein = eout-deltaH
-  Dataset<-mutate(Dataset,ein=eout-deltaH)
+  Dataset<-dplyr::mutate(Dataset,ein=eout-deltaH)
   # CO2in = CO2out-deltaC
-  Dataset<-mutate(Dataset,CO2in=CO2out-deltaC)
+  Dataset<-dplyr::mutate(Dataset,CO2in=CO2out-deltaC)
   # CALCULATIONS
   # (A.1) volume flow in L/s to mass flow in mmol m-2 s-1)
-  Dataset<-mutate(Dataset,W=V0*(1/22.414)/Atotal)
+  Dataset<-dplyr::mutate(Dataset,W=V0*(1/22.414)/Atotal)
   ##### (A.5) E in mol m-2 s-1 from eout, ein and W #####
   ##### USED FOR CALCULATION OF E AND GS #####
-  Dataset<-mutate(Dataset,E=(W*(eout-ein))/(P-eout))
+  Dataset<-dplyr::mutate(Dataset,E=(W*(eout-ein))/(P-eout))
   ##### (A.5) Edil in mol m-2 s-1 from edil, ein and W #####
   ##### Edil USED ONLY FOR DILUTION EFFECT ON CO2 #####
-  Dataset<-mutate(Dataset,Edil=(W*(edil-ein))/(P-eout))
+  Dataset<-dplyr::mutate(Dataset,Edil=(W*(edil-ein))/(P-eout))
   # A.14 in CIRAS MANUAL
   # NOTE THAT HERE WE USE Edil to account for dilution effect based on IRGA
   # Using eout from sensor would give a wrong estimate of the dilution effect due to memory effects
-  Dataset<-mutate(Dataset,A=-((deltaC*W)+(CO2out*Edil)))
+  Dataset<-dplyr::mutate(Dataset,A=-((deltaC*W)+(CO2out*Edil)))
   
   # sensible heat conductance for an elliptical leaf, 
   # # after Ball et al 1988; gbH=1/(3.8*LeafArea^0.25*wind^-0.5)
-  #Dataset<-mutate(Dataset,rbH=3.8*LeafArea^0.25*wind^(-0.5))
+  #Dataset<-dplyr::mutate(Dataset,rbH=3.8*LeafArea^0.25*wind^(-0.5))
   # # boundary layer resistance from LA, hypostomatous, following Ball et al 1988
-  #Dataset<-mutate(Dataset,rb=1.78*rbH) # in m2 s mol-1
+  #Dataset<-dplyr::mutate(Dataset,rb=1.78*rbH) # in m2 s mol-1
   #
   # boundary layer resistance from Leaf Area, hypostomatous, following Ball et al 1988
-  Dataset<-mutate(Dataset,rb=BOUNDARY(wind,LeafArea)) # in m2 s mol-1
+  Dataset<-dplyr::mutate(Dataset,rb=BOUNDARY(wind,LeafArea)) # in m2 s mol-1
   # sensible heat conductance 
-  Dataset<-mutate(Dataset,rbH=rb/1.78) # in m2 s mol-1
+  Dataset<-dplyr::mutate(Dataset,rbH=rb/1.78) # in m2 s mol-1
   # A.6 Tleaf from Parkinson 1983 in CIRAS 3 manual
   #     Tl<-Tc_+(H-LatHeat*E)/(((0.93*Ma*Cp)/rb)+(4*Rho*(Tc_+273)^3))
-  #Dataset<-mutate(Dataset,Tleaf=Tair+(H-LatHeat*E)/(Cp/rbH+4*Rho*(Tair+273)^3))
-  Dataset<-mutate(Dataset,Tleaf=TleafBarbour(H,Tair,eout,P,E,rb))
+  #Dataset<-dplyr::mutate(Dataset,Tleaf=Tair+(H-LatHeat*E)/(Cp/rbH+4*Rho*(Tair+273)^3))
+  Dataset<-dplyr::mutate(Dataset,Tleaf=TleafBarbour(H,Tair,eout,P,E,rb))
   
   # calculate eleaf from Tleaf, assuming saturation
-  Dataset<-mutate(Dataset,eleaf=esat(Tleaf))
+  Dataset<-dplyr::mutate(Dataset,eleaf=esat(Tleaf))
   
   # ##### CIRAS TEST BEGIN #####
   # # modified formulae to replicate conditions in chamber CIRAS, used to test calculations
   # Cp<-1.012 # kJ kg-1 K-1 = J g K-1
   # Ma<-28.96 # air molar mass g mol-1
-  # Dataset<-mutate(Dataset,LatHeat=45064.3-(Tair*42.9)) 
-  # Dataset<-mutate(Dataset,H=Q*0.14) 
+  # Dataset<-dplyr::mutate(Dataset,LatHeat=45064.3-(Tair*42.9)) 
+  # Dataset<-dplyr::mutate(Dataset,H=Q*0.14) 
   # rb<-0.4 # m2 s mol-1 
   # rbH<-rb/1.78
-  # Dataset<-mutate(Dataset,Tleaf=Tair+(H-LatHeat*E)/((Ma*Cp)/rbH+4.639+0.5834*Tair)) 
-  # Dataset<-mutate(Dataset,eleaf=6.1365*exp((Tleaf*17.502)/(Tleaf+240.97))) 
+  # Dataset<-dplyr::mutate(Dataset,Tleaf=Tair+(H-LatHeat*E)/((Ma*Cp)/rbH+4.639+0.5834*Tair)) 
+  # Dataset<-dplyr::mutate(Dataset,eleaf=6.1365*exp((Tleaf*17.502)/(Tleaf+240.97))) 
   # ##### CIRAS TEST END #####
   
   # (A.9) gtotal from E in mmol m-2 s-1
-  Dataset<-mutate(Dataset,gtotal=(E*(P-(eleaf+eout)/2)/(eleaf-eout)))
+  Dataset<-dplyr::mutate(Dataset,gtotal=(E*(P-(eleaf+eout)/2)/(eleaf-eout)))
   # gs from gtotal and rb
-  Dataset<-mutate(Dataset,gs=1/(1/gtotal-rb))
+  Dataset<-dplyr::mutate(Dataset,gs=1/(1/gtotal-rb))
   # E, gtotal and gs to mmol m-2 s-1
-  Dataset<-mutate(Dataset,E=E*1000,gtotal=gtotal*1000,gs=gs*1000)
+  Dataset<-dplyr::mutate(Dataset,E=E*1000,gtotal=gtotal*1000,gs=gs*1000)
   # gs as eleaf-eout
-  Dataset<-mutate(Dataset,VPDleaf=eleaf-eout)
+  Dataset<-dplyr::mutate(Dataset,VPDleaf=eleaf-eout)
   # Clean output
   # output filters
   output<-filter(Dataset,gtotal>0 & gs<1500 & gs>0 & Flow > 20 & Flow <50)
@@ -581,12 +581,12 @@ Alldata<-Alldata %>% mutate_at(vars(starts_with("WP_")),na_interpolation)
 # (low flow measured coinciding with erratic values of dC_, 
 # therefore we discarded an electrical problem of the sensor)
 # After checking the fan, we found out that the fan blade was uncoupled
-Alldata<-Alldata %>% mutate(Flow_1 = case_when(
+Alldata<-Alldata %>% dplyr::mutate(Flow_1 = case_when(
                                       Flow_1 < 27 ~ as.numeric(NA), 
                                       TRUE   ~ Flow_1))
 #
 # transfers "NA" from Flow_1 to other _1 variables
-Alldata<-Alldata %>% mutate(CO2_1=CO2_1*Flow_1/Flow_1,
+Alldata<-Alldata %>% dplyr::mutate(CO2_1=CO2_1*Flow_1/Flow_1,
                             H2O_1=H2O_1*Flow_1/Flow_1,
                             Tc_1=Tc_1*Flow_1/Flow_1,
                             HR_1=HR_1*Flow_1/Flow_1,
@@ -598,12 +598,12 @@ Alldata<-Alldata %>% mutate(CO2_1=CO2_1*Flow_1/Flow_1,
 
 # For Chamber 3, forces NAs in the period when the tube was 
 # out of the chamber (i.e. not measuring CO2 inside chamber)
-Alldata<-Alldata %>% mutate(Flow_3=case_when((Time10MIN>"2024-08-14 14:30" 
+Alldata<-Alldata %>% dplyr::mutate(Flow_3=case_when((Time10MIN>"2024-08-14 14:30" 
                        & Time10MIN<"2024-08-14 7:00") ~ as.numeric(NA),
                        TRUE ~ Flow_3))
 
 # transfers "NA" from Flow_3 to other _3 variables
-Alldata<-Alldata %>% mutate(CO2_3=CO2_3*Flow_3/Flow_3,
+Alldata<-Alldata %>% dplyr::mutate(CO2_3=CO2_3*Flow_3/Flow_3,
                             H2O_3=H2O_3*Flow_3/Flow_3,
                             Tc_3=Tc_3*Flow_3/Flow_3,
                             HR_3=HR_3*Flow_3/Flow_3,
@@ -623,7 +623,7 @@ Extremeflow<-function(x){
 # makes NAs in extreme Flow values due to wrong measurement
 # i.e. not affecting the other variables
 # (e.g. sensor malfunction or high battery voltage)
-Alldata<-Alldata %>% mutate(Flow_1=Extremeflow(Flow_1),
+Alldata<-Alldata %>% dplyr::mutate(Flow_1=Extremeflow(Flow_1),
                    Flow_2=Extremeflow(Flow_2),
                    Flow_3=Extremeflow(Flow_3),
                    Flow_4=Extremeflow(Flow_4),
@@ -631,7 +631,7 @@ Alldata<-Alldata %>% mutate(Flow_1=Extremeflow(Flow_1),
                    Flow_6=Extremeflow(Flow_6))
 
 # Replaces NAs in Flow with mean Flow
-Alldata<-Alldata %>% mutate(Flow_1=na_mean(Flow_1),
+Alldata<-Alldata %>% dplyr::mutate(Flow_1=na_mean(Flow_1),
                       Flow_2=na_mean(Flow_2),
                       Flow_3=na_mean(Flow_3),
                       Flow_4=na_mean(Flow_4),
@@ -640,7 +640,7 @@ Alldata<-Alldata %>% mutate(Flow_1=na_mean(Flow_1),
                       )
 
 # Creates new variable Flow_mean
-Alldata<-Alldata %>% mutate(Flow_mean=rowMeans(across(Flow_1:Flow_6),
+Alldata<-Alldata %>% dplyr::mutate(Flow_mean=rowMeans(dplyr::across(Flow_1:Flow_6),
                                            na.rm=TRUE))
 
 #### export csv files ####
@@ -652,7 +652,7 @@ write.csv(Alldata,"Alldata.csv",row.names=FALSE)
 #### CALCULATIONS ####
 
 ##### mean flow, hobo for E, CIRAS for dilution #####
-# CALCULATION Use mean Flow value across chambers,
+# CALCULATION Use mean Flow value dplyr::across chambers,
 # Use hobo sensors for dH (for E calculation)
 # Use CIRAS input for CO2 dilution correction
 
@@ -708,8 +708,8 @@ Alldatacalclean<-Alldatacalc3d[,c(1:2,77,14,15,80,119,30:32,76,120:125,33:50,70:
 
 # Starts "gathered" dataset with Sp (IDplant), Chamber=1:6, Sp=c(ile,fag,coc)
 Spcols<-Alldatacalclean[,1:17] %>% gather(key="Chamber",value="IDplant",starts_with("Sp"))
-Spcols<-Spcols %>% mutate(Chamber=as.numeric(str_sub(Chamber,-1)))
-Spcols<-Spcols %>% mutate(Sp=str_sub(IDplant,1,3))
+Spcols<-Spcols %>% dplyr::mutate(Chamber=as.numeric(str_sub(Chamber,-1)))
+Spcols<-Spcols %>% dplyr::mutate(Sp=str_sub(IDplant,1,3))
 
 # Adds gathered data for the rest of variables
 varlist<-c("Tc","HR","PAR","VPD_","WP","E","A","Tleaf","VPDleaf","gtotal","gs")
@@ -737,7 +737,7 @@ CombiSp<-Combicols %>%
   group_by(Option,Sp,IDplant,Chamber,Timehour) %>%
   summarise_all(mean,na.rm=TRUE)
 
-CombiSp<-mutate(CombiSp,
+CombiSp<-dplyr::mutate(CombiSp,
                 WPgroup=factor(case_when(WP>=-100 ~"(0, -0.1 MPa)",
                                   WP<(-100) & WP>=-500 ~"[-0.1, -0.5)",
                                   WP<(-500) & WP>=-1500 ~"[-0.5 -1.5)",
@@ -774,7 +774,7 @@ dataset3<-filter(CombiSp,Sp=="coc" & Option=="3d"
 )
 dataset<-rbind(dataset1,dataset2,dataset3)
 # add vp_air inside chamber
-dataset<-mutate(dataset,
+dataset<-dplyr::mutate(dataset,
                 vpair=esat(Tc)*HR/100)
 
 write.csv(dataset,"dataset.csv",row.names=FALSE)
@@ -830,7 +830,7 @@ dev.off()
 fag<-(filter(dataset,Sp=="fag" & WP>=-100))
 ile<-(filter(dataset,Sp=="ile" & WP>=-100))
 coc<-(filter(dataset,Sp=="coc" & WP>=-100))
-fag<-mutate(fag,
+fag<-dplyr::mutate(fag,
               Tc_lev=factor(case_when(Tc<=quantile(Tc,0.25)~"Q1",
                                       Tc>quantile(Tc,0.25) & Tc<=quantile(Tc,0.5)~"Q2",
                                       Tc>quantile(Tc,0.5) & Tc<=quantile(Tc,0.75)~"Q3",
@@ -839,7 +839,7 @@ fag<-mutate(fag,
                                       vpair>quantile(vpair,0.25) & vpair<=quantile(vpair,0.5)~"Q2",
                                       vpair>quantile(vpair,0.5) & vpair<=quantile(vpair,0.75)~"Q3",
                                       vpair>quantile(vpair,0.25)~"Q4")))
-ile<-mutate(ile,
+ile<-dplyr::mutate(ile,
             Tc_lev=factor(case_when(Tc<=quantile(Tc,0.25)~"Q1",
                                     Tc>quantile(Tc,0.25) & Tc<=quantile(Tc,0.5)~"Q2",
                                     Tc>quantile(Tc,0.5) & Tc<=quantile(Tc,0.75)~"Q3",
@@ -848,7 +848,7 @@ ile<-mutate(ile,
                                     vpair>quantile(vpair,0.25) & vpair<=quantile(vpair,0.5)~"Q2",
                                     vpair>quantile(vpair,0.5) & vpair<=quantile(vpair,0.75)~"Q3",
                                     vpair>quantile(vpair,0.25)~"Q4")))
-coc<-mutate(coc,
+coc<-dplyr::mutate(coc,
             Tc_lev=factor(case_when(Tc<=quantile(Tc,0.25)~"Q1",
                                     Tc>quantile(Tc,0.25) & Tc<=quantile(Tc,0.5)~"Q2",
                                     Tc>quantile(Tc,0.5) & Tc<=quantile(Tc,0.75)~"Q3",
@@ -870,7 +870,7 @@ dataTclev<-dataset_tcvp %>%
             VPDleafmean=mean(VPDleaf,na.rm=TRUE),
             gsmean=mean(gs,na.rm=TRUE))
 
-dataTclev<-mutate(dataTclev,
+dataTclev<-dplyr::mutate(dataTclev,
                   Tcrange=paste(Tc_lev," (",as.character(round(Tcmin,digits=1)),
                           " ",as.character(round(Tcmax,digits=1)),")",
                           sep=""))
@@ -896,7 +896,7 @@ datavplev<-dataset_tcvp %>%
                      str_length(vpmaxchar)==1 ~ paste(vpmaxchar,".0",sep=""),
                      TRUE ~ vpmaxchar))
 
-datavplev<-mutate(datavplev,
+datavplev<-dplyr::mutate(datavplev,
                   vprange_kPa=paste(vp_lev," (",vpminchar,
                                     " ",vpmaxchar,")",sep=""))
 
@@ -991,38 +991,38 @@ for (i in 1:3) {
   Leafcombi<-left_join(Leafcombi,Leaftempsub,by=c("Time10MIN","Chamber"))
 }
 
-Leafcombi<-mutate(Leafcombi,T_Tcmean=rowMeans(across(T_Tc1:T_Tc3),na.rm=TRUE))
+Leafcombi<-dplyr::mutate(Leafcombi,T_Tcmean=rowMeans(dplyr::across(T_Tc1:T_Tc3),na.rm=TRUE))
 
 write.csv(Leafcombi,"Leafcombi.csv",row.names=FALSE)
 
 Leafcombi<-read.csv("Leafcombi.csv",header=TRUE)
 
-subset1<-Leafcombi %>% filter(IDplant=="coc01") %>% mutate(T_Tc=T_Tc3)
-subset2<-Leafcombi %>% filter(IDplant=="coc01") %>% mutate(T_Tc=T_Tc2)
-subset3<-Leafcombi %>% filter(IDplant=="coc03") %>% mutate(T_Tc=T_Tc2)
-subset4<-Leafcombi %>% filter(IDplant=="coc05") %>% mutate(T_Tc=T_Tc2)
-subset5<-Leafcombi %>% filter(IDplant=="coc05") %>% mutate(T_Tc=T_Tc3)
+subset1<-Leafcombi %>% filter(IDplant=="coc01") %>% dplyr::mutate(T_Tc=T_Tc3)
+subset2<-Leafcombi %>% filter(IDplant=="coc01") %>% dplyr::mutate(T_Tc=T_Tc2)
+subset3<-Leafcombi %>% filter(IDplant=="coc03") %>% dplyr::mutate(T_Tc=T_Tc2)
+subset4<-Leafcombi %>% filter(IDplant=="coc05") %>% dplyr::mutate(T_Tc=T_Tc2)
+subset5<-Leafcombi %>% filter(IDplant=="coc05") %>% dplyr::mutate(T_Tc=T_Tc3)
 
 coccifera<-rbind(subset1,subset2,subset3,subset4,subset5)
 
-subset1<-Leafcombi %>% filter(IDplant=="fag01") %>% mutate(T_Tc=T_Tc2)
-subset2<-Leafcombi %>% filter(IDplant=="fag01") %>% mutate(T_Tc=T_Tc3)
-subset3<-Leafcombi %>% filter(IDplant=="fag03") %>% mutate(T_Tc=T_Tc2)
-subset4<-Leafcombi %>% filter(IDplant=="fag07") %>% mutate(T_Tc=T_Tc3)
+subset1<-Leafcombi %>% filter(IDplant=="fag01") %>% dplyr::mutate(T_Tc=T_Tc2)
+subset2<-Leafcombi %>% filter(IDplant=="fag01") %>% dplyr::mutate(T_Tc=T_Tc3)
+subset3<-Leafcombi %>% filter(IDplant=="fag03") %>% dplyr::mutate(T_Tc=T_Tc2)
+subset4<-Leafcombi %>% filter(IDplant=="fag07") %>% dplyr::mutate(T_Tc=T_Tc3)
 
 faginea<-rbind(subset1,subset2,subset3,subset4)
 
-subset1<-Leafcombi %>% filter(IDplant=="ilex06") %>% mutate(T_Tc=T_Tc2)
-subset2<-Leafcombi %>% filter(IDplant=="ilex07") %>% mutate(T_Tc=T_Tc1)
-subset3<-Leafcombi %>% filter(IDplant=="ilex07") %>% mutate(T_Tc=T_Tc2)
-subset4<-Leafcombi %>% filter(IDplant=="ilex07") %>% mutate(T_Tc=T_Tc3)
-subset5<-Leafcombi %>% filter(IDplant=="ilex09") %>% mutate(T_Tc=T_Tc1)
+subset1<-Leafcombi %>% filter(IDplant=="ilex06") %>% dplyr::mutate(T_Tc=T_Tc2)
+subset2<-Leafcombi %>% filter(IDplant=="ilex07") %>% dplyr::mutate(T_Tc=T_Tc1)
+subset3<-Leafcombi %>% filter(IDplant=="ilex07") %>% dplyr::mutate(T_Tc=T_Tc2)
+subset4<-Leafcombi %>% filter(IDplant=="ilex07") %>% dplyr::mutate(T_Tc=T_Tc3)
+subset5<-Leafcombi %>% filter(IDplant=="ilex09") %>% dplyr::mutate(T_Tc=T_Tc1)
 
 ilex<-rbind(subset1,subset2,subset3,subset4,subset5)
 
 Leaftemp<-rbind(faginea,ilex,coccifera)
 
-Leaftemp<-mutate(Leaftemp,
+Leaftemp<-dplyr::mutate(Leaftemp,
                  PARlevel=case_when(PAR>=500 ~ "PAR>=500",
                                   PAR<500 ~ "PAR<500"))
 
