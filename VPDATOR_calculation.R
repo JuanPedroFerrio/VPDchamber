@@ -721,12 +721,19 @@ for (i in 1:11) {
   Spcols<-cbind(Spcols,gathercols)
 }
 
-# renames VPD_ as VPDair (inside chamber)
-Spcols3d<-Spcols %>% dplyr::rename(VPDair=VPD_)
+# renames VPD_ as VPDc (inside chamber)
+Spcols3d<-Spcols %>% dplyr::rename(VPDc=VPD_)
 Spcols3d<-data.frame(Option="3d",Spcols3d)
 
 # Cleaned dataset
 Combicols<-na.omit(Spcols3d)
+
+# For consistency, rename "chamber" variables 
+# with subscript "c"
+Combicols<-dplyr::rename(Combicols,
+                         HRc=HR,
+                         PARc=PAR)
+
 write.csv(Combicols,"CombicolsD.csv",row.names=FALSE)
 
 #### 1-hour summary ####
@@ -751,34 +758,33 @@ CombiSp<-dplyr::mutate(CombiSp,
 #####  Qfag #####
 dataset1<-filter(CombiSp,Sp=="fag" & Option=="3d" 
                  # & WP>=-1500 
-                 & PAR>500
-                 & HR<80
+                 & PARc>500
+                 & HRc<80
                  & WUE>0.01
                  & WUE<12
                  )
 #####  Qile #####
 dataset2<-filter(CombiSp,Sp=="ile"& Option=="3d"
                  # & WP>=-1500 
-                 & PAR>500
-                 & HR<80
+                 & PARc>500
+                 & HRc<80
                  & WUE>0.01
                  & WUE<12
                  )
 ##### Qcoc #####
 dataset3<-filter(CombiSp,Sp=="coc" & Option=="3d" 
                  # & WP>=-1500 
-                 & PAR>500
-                 & HR<80
+                 & PARc>500
+                 & HRc<80
                  & WUE>0.01
                  & WUE<12
 )
 dataset<-rbind(dataset1,dataset2,dataset3)
 # add vp_air inside chamber
 dataset<-dplyr::mutate(dataset,
-                vpair=esat(Tc)*HR/100)
+                vpc=esat(Tc)*HRc/100)
 
 write.csv(dataset,"dataset.csv",row.names=FALSE)
-
 
 #### SUPP. GRAPHS ####
 
@@ -796,14 +802,14 @@ WPbreaks<-c("(0, -0.1 MPa)","[-0.1, -0.5)","[-0.5 -1.5)","[-1.5 -3.5)")
 
 # TeX("\\textit{R}$_{s}$ ($mu$mol m$^{-2}$ s$^{-1}$)"
 
-#### VPDair vs VPDleaf ####
+#### VPDc vs VPDleaf ####
 tiff(paste("VPDleaf_VPDair.tiff"), width=6000, height=3000,res=600,units="px",compression="lzw")
 
-refline<-data.frame(VPDair=c(0,12))
+refline<-data.frame(VPDc=c(0,12))
 
-ggplot(data=filter(dataset),aes(x=VPDair/10,y=VPDleaf/10,color=WPgroup))+
+ggplot(data=filter(dataset),aes(x=VPDc/10,y=VPDleaf/10,color=WPgroup))+
   geom_point(aes(shape=WPgroup,fill=WPgroup),alpha=1,size=2,stroke=NA)+
-  geom_line(data=refline,aes(x=VPDair,y=VPDair),color="darkgrey",lty="dashed")+
+  geom_line(data=refline,aes(x=VPDc,y=VPDc),color="darkgrey",lty="dashed")+
   scale_y_continuous(name=TeX("VPD$_{leaf}$ (kPa)"),breaks=c(0,3,6,9,12),limits=c(0,12))+
   scale_x_continuous(name=TeX("VPD$_{chamber}$ (kPa)"),breaks=c(0,3,6,9,12),limits=c(0,12))+
   geom_smooth(method = "lm", se = FALSE)+
@@ -826,7 +832,7 @@ ggplot(data=filter(dataset),aes(x=VPDair/10,y=VPDleaf/10,color=WPgroup))+
     legend.title= element_text(size=12))
 dev.off()
 
-# create quartiles for Tc and vpair
+# create quartiles for Tc and vpc
 fag<-(filter(dataset,Sp=="fag" & WP>=-100))
 ile<-(filter(dataset,Sp=="ile" & WP>=-100))
 coc<-(filter(dataset,Sp=="coc" & WP>=-100))
@@ -835,38 +841,38 @@ fag<-dplyr::mutate(fag,
                                       Tc>quantile(Tc,0.25) & Tc<=quantile(Tc,0.5)~"Q2",
                                       Tc>quantile(Tc,0.5) & Tc<=quantile(Tc,0.75)~"Q3",
                                       Tc>quantile(Tc,0.25)~"Q4")),
-              vp_lev=factor(case_when(vpair<=quantile(vpair,0.25)~"Q1",
-                                      vpair>quantile(vpair,0.25) & vpair<=quantile(vpair,0.5)~"Q2",
-                                      vpair>quantile(vpair,0.5) & vpair<=quantile(vpair,0.75)~"Q3",
-                                      vpair>quantile(vpair,0.25)~"Q4")))
+              vp_lev=factor(case_when(vpc<=quantile(vpc,0.25)~"Q1",
+                                      vpc>quantile(vpc,0.25) & vpc<=quantile(vpc,0.5)~"Q2",
+                                      vpc>quantile(vpc,0.5) & vpc<=quantile(vpc,0.75)~"Q3",
+                                      vpc>quantile(vpc,0.25)~"Q4")))
 ile<-dplyr::mutate(ile,
             Tc_lev=factor(case_when(Tc<=quantile(Tc,0.25)~"Q1",
                                     Tc>quantile(Tc,0.25) & Tc<=quantile(Tc,0.5)~"Q2",
                                     Tc>quantile(Tc,0.5) & Tc<=quantile(Tc,0.75)~"Q3",
                                     Tc>quantile(Tc,0.25)~"Q4")),
-            vp_lev=factor(case_when(vpair<=quantile(vpair,0.25)~"Q1",
-                                    vpair>quantile(vpair,0.25) & vpair<=quantile(vpair,0.5)~"Q2",
-                                    vpair>quantile(vpair,0.5) & vpair<=quantile(vpair,0.75)~"Q3",
-                                    vpair>quantile(vpair,0.25)~"Q4")))
+            vp_lev=factor(case_when(vpc<=quantile(vpc,0.25)~"Q1",
+                                    vpc>quantile(vpc,0.25) & vpc<=quantile(vpc,0.5)~"Q2",
+                                    vpc>quantile(vpc,0.5) & vpc<=quantile(vpc,0.75)~"Q3",
+                                    vpc>quantile(vpc,0.25)~"Q4")))
 coc<-dplyr::mutate(coc,
             Tc_lev=factor(case_when(Tc<=quantile(Tc,0.25)~"Q1",
                                     Tc>quantile(Tc,0.25) & Tc<=quantile(Tc,0.5)~"Q2",
                                     Tc>quantile(Tc,0.5) & Tc<=quantile(Tc,0.75)~"Q3",
                                     Tc>quantile(Tc,0.25)~"Q4")),
-             vp_lev=factor(case_when(vpair<=quantile(vpair,0.25)~"Q1",
-                                    vpair>quantile(vpair,0.25) & vpair<=quantile(vpair,0.5)~"Q2",
-                                    vpair>quantile(vpair,0.5) & vpair<=quantile(vpair,0.75)~"Q3",
-                                    vpair>quantile(vpair,0.25)~"Q4")))
+             vp_lev=factor(case_when(vpc<=quantile(vpc,0.25)~"Q1",
+                                    vpc>quantile(vpc,0.25) & vpc<=quantile(vpc,0.5)~"Q2",
+                                    vpc>quantile(vpc,0.5) & vpc<=quantile(vpc,0.75)~"Q3",
+                                    vpc>quantile(vpc,0.25)~"Q4")))
 dataset_tcvp<-rbind(fag,ile,coc)
 
 dataTclev<-dataset_tcvp %>%
   group_by(Sp,Tc_lev) %>%
   dplyr::summarise(Tcmin=min(Tc,na.rm=TRUE),
             Tcmax=max(Tc,na.rm=TRUE),
-            PARmean=mean(PAR,na.rm=TRUE),
+            PARmean=mean(PARc,na.rm=TRUE),
             Prmean=mean(Pr,na.rm=TRUE),
             Tleafmean=mean(Tleaf,na.rm=TRUE),
-            vpmean=mean(vpair,na.rm=TRUE),
+            vpmean=mean(vpc,na.rm=TRUE),
             VPDleafmean=mean(VPDleaf,na.rm=TRUE),
             gsmean=mean(gs,na.rm=TRUE))
 
@@ -879,9 +885,9 @@ write.csv(dataTclev,file="Tcquartiles.csv")
 
 datavplev<-dataset_tcvp %>%
   group_by(Sp,vp_lev) %>%
-  dplyr::summarise(vpmin=min(vpair,na.rm=TRUE),
-                   vpmax=max(vpair,na.rm=TRUE),
-                   PARmean=mean(PAR,na.rm=TRUE),
+  dplyr::summarise(vpmin=min(vpc,na.rm=TRUE),
+                   vpmax=max(vpc,na.rm=TRUE),
+                   PARmean=mean(PARc,na.rm=TRUE),
                    Prmean=mean(Pr,na.rm=TRUE),
                    Tleafmean=mean(Tleaf,na.rm=TRUE),
                    Tcmean=mean(Tc,na.rm=TRUE),
@@ -911,8 +917,8 @@ summaryq$Sp<-factor(summaryq$Sp,levels=c("fag","ile","coc"))
 Rangetitle<-data.frame(x=5.5,y=1400,Sp=c("fag","ile","coc"))
 Rangetitle$Sp<-factor(Rangetitle$Sp,levels=c("fag","ile","coc"))
 
-tiff(paste("gs_VPD_Tc_vp.tiff"), width=6000, height=5000,res=600,units="px",compression="lzw")
-pA<-ggplot(data=filter(dataset_tcvp),aes(x=VPDleaf/10,y=E))+
+tiff(paste("gs_VPD_Tc_vpc.tiff"), width=6000, height=5000,res=600,units="px",compression="lzw")
+pA<-ggplot(data=filter(dataset_tcvp),aes(x=VPDleaf/10,y=gs))+
   geom_point(aes(color=Tc_lev),alpha=1,shape=21,size=1)+
   # geom_text(data=Rangetitle,aes(x=x,y=y,label=TeX("\\textit{T}$_{c}$ range (ºC)")),size=4,show.legend=FALSE,hjust=0)+
   # geom_text(data=summaryq,aes(x=x,y=y,label=Tcrange,color=Tc_lev),size=4,show.legend=FALSE,hjust=0)+
@@ -970,7 +976,7 @@ cowplot::plot_grid(pA,
 dev.off()
 
 #### TEST Tleaf ####
-Leafcombi<-Combicols
+
 Leafcombi<-read.csv("CombicolsD.csv",header=TRUE)
 Alldata<-read.csv("Alldata.csv",header=TRUE)
 
@@ -1023,8 +1029,8 @@ ilex<-rbind(subset1,subset2,subset3,subset4,subset5)
 Leaftemp<-rbind(faginea,ilex,coccifera)
 
 Leaftemp<-dplyr::mutate(Leaftemp,
-                 PARlevel=case_when(PAR>=500 ~ "PAR>=500",
-                                  PAR<500 ~ "PAR<500"))
+                 PARlevel=case_when(PARc>=500 ~ "PAR>=500",
+                                  PARc<500 ~ "PAR<500"))
 
 Leaftemp$Sp<-factor(Leaftemp$Sp)
 levels(Leaftemp$Sp)<-c("fag","ile","coc")
