@@ -997,7 +997,8 @@ for (i in 1:3) {
   Leafcombi<-left_join(Leafcombi,Leaftempsub,by=c("Time10MIN","Chamber"))
 }
 
-Leafcombi<-dplyr::mutate(Leafcombi,T_Tcmean=rowMeans(dplyr::across(T_Tc1:T_Tc3),na.rm=TRUE))
+Leafcombi<-dplyr::mutate(Leafcombi,
+                          T_Tcmean=rowMeans(dplyr::across(T_Tc1:T_Tc3),na.rm=TRUE))
 
 write.csv(Leafcombi,"Leafcombi.csv",row.names=FALSE)
 
@@ -1032,8 +1033,7 @@ Leaftemp<-dplyr::mutate(Leaftemp,
                  PARlevel=case_when(PARc>=500 ~ "PAR>=500",
                                   PARc<500 ~ "PAR<500"))
 
-Leaftemp$Sp<-factor(Leaftemp$Sp)
-levels(Leaftemp$Sp)<-c("fag","ile","coc")
+Leaftemp$Sp<-factor(Leaftemp$Sp,levels=c("fag","ile","coc"))
 PAR.labs <- c("PAR <500", "PAR >=500")
 names(PAR.labs) <- c("PAR<500", "PAR>=500")
 Sp.labs <- c("Q. faginea","Q. rotundifolia","Q. coccifera")
