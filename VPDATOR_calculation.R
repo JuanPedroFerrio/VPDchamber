@@ -832,7 +832,7 @@ ggplot(data=filter(dataset),aes(x=VPDc/10,y=VPDleaf/10,color=WPgroup))+
     legend.title= element_text(size=12))
 dev.off()
 
-# create quartiles for Tc and vpc
+# create quartiles for Tc
 fag<-(filter(dataset,Sp=="fag" & WP>=-100))
 ile<-(filter(dataset,Sp=="ile" & WP>=-100))
 coc<-(filter(dataset,Sp=="coc" & WP>=-100))
@@ -840,31 +840,44 @@ fag<-dplyr::mutate(fag,
               Tc_lev=factor(case_when(Tc<=quantile(Tc,0.25)~"Q1",
                                       Tc>quantile(Tc,0.25) & Tc<=quantile(Tc,0.5)~"Q2",
                                       Tc>quantile(Tc,0.5) & Tc<=quantile(Tc,0.75)~"Q3",
-                                      Tc>quantile(Tc,0.25)~"Q4")),
-              vp_lev=factor(case_when(vpc<=quantile(vpc,0.25)~"Q1",
-                                      vpc>quantile(vpc,0.25) & vpc<=quantile(vpc,0.5)~"Q2",
-                                      vpc>quantile(vpc,0.5) & vpc<=quantile(vpc,0.75)~"Q3",
-                                      vpc>quantile(vpc,0.25)~"Q4")))
+                                      Tc>quantile(Tc,0.25)~"Q4")))
 ile<-dplyr::mutate(ile,
             Tc_lev=factor(case_when(Tc<=quantile(Tc,0.25)~"Q1",
                                     Tc>quantile(Tc,0.25) & Tc<=quantile(Tc,0.5)~"Q2",
                                     Tc>quantile(Tc,0.5) & Tc<=quantile(Tc,0.75)~"Q3",
-                                    Tc>quantile(Tc,0.25)~"Q4")),
-            vp_lev=factor(case_when(vpc<=quantile(vpc,0.25)~"Q1",
-                                    vpc>quantile(vpc,0.25) & vpc<=quantile(vpc,0.5)~"Q2",
-                                    vpc>quantile(vpc,0.5) & vpc<=quantile(vpc,0.75)~"Q3",
-                                    vpc>quantile(vpc,0.25)~"Q4")))
+                                    Tc>quantile(Tc,0.25)~"Q4")))
 coc<-dplyr::mutate(coc,
             Tc_lev=factor(case_when(Tc<=quantile(Tc,0.25)~"Q1",
                                     Tc>quantile(Tc,0.25) & Tc<=quantile(Tc,0.5)~"Q2",
                                     Tc>quantile(Tc,0.5) & Tc<=quantile(Tc,0.75)~"Q3",
-                                    Tc>quantile(Tc,0.25)~"Q4")),
-             vp_lev=factor(case_when(vpc<=quantile(vpc,0.25)~"Q1",
-                                    vpc>quantile(vpc,0.25) & vpc<=quantile(vpc,0.5)~"Q2",
-                                    vpc>quantile(vpc,0.5) & vpc<=quantile(vpc,0.75)~"Q3",
-                                    vpc>quantile(vpc,0.25)~"Q4")))
+                                    Tc>quantile(Tc,0.25)~"Q4")))
+
+# compare curves by Tc level
+VPDfag<-drm(gs ~ VPDleaf,Tc_lev,#weights=1/Incubotron$std.error,
+            data=fag,fct=L.3(names=c("slope","gsmax","P50")))
+VPDfag
+compParm(VPDfag,"slope","-")
+compParm(VPDfag,"gsmax","-")
+compParm(VPDfag,"P50","-")
+
+VPDile<-drm(gs ~ VPDleaf,Tc_lev,#weights=1/Incubotron$std.error,
+            data=ile,fct=L.3(names=c("slope","gsmax","P50")))
+VPDile
+compParm(VPDile,"slope","-")
+compParm(VPDile,"gsmax","-")
+compParm(VPDile,"P50","-")
+
+VPDcoc<-drm(gs ~ VPDleaf,Tc_lev,#weights=1/Incubotron$std.error,
+            data=coc,fct=L.3(names=c("slope","gsmax","P50")))
+VPDcoc
+compParm(VPDcoc,"slope","-")
+compParm(VPDcoc,"gsmax","-")
+compParm(VPDcoc,"P50","-")
+
+# combine dataset
 dataset_tcvp<-rbind(fag,ile,coc)
 
+# summary data by Tc level
 dataTclev<-dataset_tcvp %>%
   group_by(Sp,Tc_lev) %>%
   dplyr::summarise(Tcmin=min(Tc,na.rm=TRUE),
@@ -883,46 +896,19 @@ dataTclev<-dplyr::mutate(dataTclev,
 
 write.csv(dataTclev,file="Tcquartiles.csv")
 
-datavplev<-dataset_tcvp %>%
-  group_by(Sp,vp_lev) %>%
-  dplyr::summarise(vpmin=min(vpc,na.rm=TRUE),
-                   vpmax=max(vpc,na.rm=TRUE),
-                   PARmean=mean(PARc,na.rm=TRUE),
-                   Prmean=mean(Pr,na.rm=TRUE),
-                   Tleafmean=mean(Tleaf,na.rm=TRUE),
-                   Tcmean=mean(Tc,na.rm=TRUE),
-                   VPDleafmean=mean(VPDleaf,na.rm=TRUE),
-                   gsmean=mean(gs,na.rm=TRUE),
-                   vpminchar=as.character(round(vpmin/10,digits=1)),
-                   vpmaxchar=as.character(round(vpmax/10,digits=1)),
-                   vpminchar=case_when(
-                     str_length(vpminchar)==1 ~ paste(vpminchar,".0",sep=""),
-                     TRUE ~ vpminchar),
-                   vpmaxchar=case_when(
-                     str_length(vpmaxchar)==1 ~ paste(vpmaxchar,".0",sep=""),
-                     TRUE ~ vpmaxchar))
-
-datavplev<-dplyr::mutate(datavplev,
-                  vprange_kPa=paste(vp_lev," (",vpminchar,
-                                    " ",vpmaxchar,")",sep=""))
-
-datavplev<-dplyr::select(datavplev,!ends_with("char")) 
-
-write.csv(datavplev,file="vpquartiles.csv")
-
 summaryq<-cbind(data.frame(x=6,y=c(1325,1250,1175,1100)),
-                        dataTclev[,c(1:2,11)],datavplev[,c(2,11)])
+                        dataTclev[,c(1:2,11)])
 summaryq$Sp<-factor(summaryq$Sp,levels=c("fag","ile","coc"))
 
 Rangetitle<-data.frame(x=5.5,y=1400,Sp=c("fag","ile","coc"))
 Rangetitle$Sp<-factor(Rangetitle$Sp,levels=c("fag","ile","coc"))
 
-tiff(paste("gs_VPD_Tc_vpc.tiff"), width=6000, height=5000,res=600,units="px",compression="lzw")
-pA<-ggplot(data=filter(dataset_tcvp),aes(x=VPDleaf/10,y=gs))+
+tiff(paste("gs_VPD_Tc.tiff"), width=6000, height=2500,res=600,units="px",compression="lzw")
+ggplot(data=filter(dataset_tcvp),aes(x=VPDleaf/10,y=gs))+
   geom_point(aes(color=Tc_lev),alpha=1,shape=21,size=1)+
-  # geom_text(data=Rangetitle,aes(x=x,y=y,label=TeX("\\textit{T}$_{c}$ range (ºC)")),size=4,show.legend=FALSE,hjust=0)+
-  # geom_text(data=summaryq,aes(x=x,y=y,label=Tcrange,color=Tc_lev),size=4,show.legend=FALSE,hjust=0)+
-  # scale_y_continuous(name=TeX("\\textit{g}$_{s}$ (mmol m$^{-2}$ s$^{-1}$)"),limits=c(0,1500))+
+  geom_text(data=Rangetitle,aes(x=x,y=y,label=TeX("\\textit{T}$_{c}$ range (ºC)")),size=4,show.legend=FALSE,hjust=0)+
+  geom_text(data=summaryq,aes(x=x,y=y,label=Tcrange,color=Tc_lev),size=4,show.legend=FALSE,hjust=0)+
+  scale_y_continuous(name=TeX("\\textit{g}$_{s}$ (mmol m$^{-2}$ s$^{-1}$)"),limits=c(0,1500))+
   scale_x_continuous(name=TeX("VPD$_{leaf}$ (kPa)"),breaks=c(0,3,6,9,12),limits=c(0,12))+
   geom_smooth(aes(color=Tc_lev),method = "drm", method.args = list(fct = L.3()), se = FALSE)+
   scale_colour_manual(name=TeX("quantile \\textit{T}$_{c}$"),values=WPlinePalette)+
@@ -933,31 +919,6 @@ pA<-ggplot(data=filter(dataset_tcvp),aes(x=VPDleaf/10,y=gs))+
   theme(
     panel.grid.minor=element_blank(),
     strip.text.x=element_text(size=12,face="italic"),
-    axis.text.x = element_blank(),
-    axis.text.y = element_text(size = 12,color="black"),
-    axis.title.x = element_blank(),
-    axis.title.y = element_text(size = 16),
-    legend.text = element_text(size=10,hjust=1),
-    legend.title= element_text(size=12),
-    legend.position="none")
-
-pB<-ggplot(data=filter(dataset_tcvp),aes(x=VPDleaf/10,y=gs))+
-  geom_point(alpha=1,shape=21,size=1)+
-  geom_point(aes(color=vp_lev),alpha=1,shape=21,size=1)+
-  geom_text(data=Rangetitle,aes(x=x,y=y,label=TeX("\\textit{vp}$_{c}$ range (kPa)")),size=4,show.legend=FALSE,hjust=0)+
-  geom_text(data=summaryq,aes(x=x,y=y,label=vprange_kPa,color=vp_lev),size=4,show.legend=FALSE,hjust=0)+
-  # geom_text(data=labels[1:2,],aes(x=x,y=y,label=label),size=8)+
-  scale_y_continuous(name=TeX("\\textit{g}$_{s}$ (mmol m$^{-2}$ s$^{-1}$)"),limits=c(0,1500))+
-  scale_x_continuous(name=TeX("VPD$_{leaf}$ (kPa)"),breaks=c(0,3,6,9,12),limits=c(0,12))+
-  geom_smooth(aes(color=vp_lev),method = "drm", method.args = list(fct = L.3()), se = FALSE)+
-  scale_colour_manual(name=TeX("quantile \\textit{vp}$_{c}$"),values=WPlinePalette)+
-  # geom_line(data=Extrapolate_cols,aes(x=VPDleaf/10,y=gs),
-  #           colour="blue",,linetype="dashed",linewidth=1.5)+
-  facet_wrap(facets=vars(Sp),labeller=labeller(Sp=Sp.labs))+
-  theme_bw()+
-  theme(
-    panel.grid.minor=element_blank(),
-    strip.text.x=element_blank(),
     axis.text.x = element_text(size = 12,color="black"),
     axis.text.y = element_text(size = 12,color="black"),
     axis.title.x = element_text(size = 16),
@@ -965,14 +926,6 @@ pB<-ggplot(data=filter(dataset_tcvp),aes(x=VPDleaf/10,y=gs))+
     legend.text = element_text(size=10,hjust=1),
     legend.title= element_text(size=12),
     legend.position="none")
-
-cowplot::plot_grid(pA, 
-                   pB,ncol=1,
-                                      align='v'
-                   ,
-                   rel_heights=c(0.32,
-                                 0.35)
-                   )
 dev.off()
 
 #### TEST Tleaf ####
