@@ -6,10 +6,13 @@ library(readxl) #para leer xls
 library(lavaan) # path analysis
 library(semPlot) # plot Structural Equation Models
 library(cowplot) # to combine panes
+# library(lme4)
+# library(piecewiseSEM)
 
 citation("lavaan")
-citation("semPlot")
+# citation("semPlot")
 citation("tidyverse")
+# citation("piecewiseSEM")
 
 #### SET DIR ####
 ## Setting the working directory to the path of your current open file
@@ -36,34 +39,62 @@ ALL<-dplyr::mutate(ALL,
             )
             
 ALL<-dplyr::summarise(ALL,
-               .by=c(Sp,Timehour),
+               .by=c(Sp,IDplant,Timehour),
                dplyr::across(c(PARc, vpc, Tc, Tleaf, SWP, VPDleaf,gs,E,A,WUE),
                       mean,na.rm=TRUE))
 
 ALL<-dplyr::mutate(ALL,
-             dplyr::across(c(PARc, vpc, Tc, Tleaf, SWP, VPDleaf,gs,E,A), scale))
+             dplyr::across(c(PARc, vpc, Tc, Tleaf, SWP, VPDleaf,gs,E,A),
+                           ~ as.numeric(scale(.x))))
 
+ALL$Sp <- factor(ALL$Sp)
+ALL$IDplant <- factor(ALL$IDplant)
 
-
-#### OPTION1 NO gs ####
+#### NEW MODEL EXCLUDING WUE AND ACCOUNTING FOR IDPLANT ####
 
 ENVmodel<-
   'E~VPDleaf+SWP+Tc
   A~PARc+VPDleaf+SWP+Tc
-WUE~A+E
 '
+
+##### free model= fit separate paths for each species #####
+results_nocluster<-lavaan::sem(ENVmodel,
+                          data=ALL,
+                          group="Sp")
+
+lavInspect(results_nocluster, "converged")
+
+summary(results_nocluster, standardized=TRUE, rsquare=TRUE,fit.measures = TRUE)
 
 ##### free model= fit separate paths for each species #####
 results_free<-lavaan::sem(ENVmodel,
                   data=ALL,
-                  group="Sp")
+                  group="Sp",
+                  cluster="IDplant")
+
+lavInspect(results_free, "converged")
 
 summary(results_free, standardized=TRUE, rsquare=TRUE,fit.measures = TRUE)
+
+##### residual covariance #####
+EA_cov <- lavaan::parameterEstimates(
+  results_free,
+  standardized = TRUE,
+  ci = TRUE
+) %>%
+  dplyr::filter(
+    op == "~~",
+    (lhs == "E" & rhs == "A") |
+      (lhs == "A" & rhs == "E")
+  )
+
+EA_cov
 
 ##### equal model= forces same path for the two species #####
 results_equal<-sem(ENVmodel,data=ALL,
                    group="Sp",
-                   group.equal="regressions")
+                   group.equal="regressions",
+                   cluster="IDplant")
 
 summary(results_equal, standardized=TRUE, rsquare=TRUE,fit.measures = TRUE)
 
@@ -76,130 +107,118 @@ anova(results_free, results_equal)
 ENVmodel_var<-
   'E~c(VPDleaf1e,VPDleaf2e)*VPDleaf+c(SWP1e,SWP2e)*SWP+c(Tc1e,Tc2e)*Tc
   A~c(PAR1a,PAR2a)*PARc+c(VPDleaf1a,VPDleaf2a)*VPDleaf+c(SWP1a,SWP2a)*SWP+c(Tc1a,Tc2a)*Tc
-WUE~c(A1,A2)*A+c(E1,E2)*E
 '
 results_var <- lavaan::sem(
   ENVmodel_var,
   data = ALL,
   group = "Sp",
-  group.equal="regressions")
+cluster="IDplant")
 anova(results_free, results_var)
 
 ###### E~VPDleaf ######
 ENVmodel_var<-
   'E~c(VPDleafe,VPDleafe)*VPDleaf+c(SWP1e,SWP2e)*SWP+c(Tc1e,Tc2e)*Tc
   A~c(PAR1a,PAR2a)*PARc+c(VPDleaf1a,VPDleaf2a)*VPDleaf+c(SWP1a,SWP2a)*SWP+c(Tc1a,Tc2a)*Tc
-WUE~c(A1,A2)*A+c(E1,E2)*E
 '
 results_var <- lavaan::sem(
   ENVmodel_var,
   data = ALL,
   group = "Sp",
-  group.equal="regressions")
+cluster="IDplant")
 anova(results_free, results_var)
+
+###### E~VPDleaf without clustering ######
+ENVmodel_var<-
+  'E~c(VPDleafe,VPDleafe)*VPDleaf+c(SWP1e,SWP2e)*SWP+c(Tc1e,Tc2e)*Tc
+  A~c(PAR1a,PAR2a)*PARc+c(VPDleaf1a,VPDleaf2a)*VPDleaf+c(SWP1a,SWP2a)*SWP+c(Tc1a,Tc2a)*Tc
+'
+results_var <- lavaan::sem(
+  ENVmodel_var,
+  data = ALL,
+  group = "Sp")
+anova(results_nocluster, results_var)
 
 ###### E~SWP ######
 ENVmodel_var<-
   'E~c(VPDleaf1e,VPDleaf2e)*VPDleaf+c(SWPe,SWPe)*SWP+c(Tc1e,Tc2e)*Tc
   A~c(PAR1a,PAR2a)*PARc+c(VPDleaf1a,VPDleaf2a)*VPDleaf+c(SWP1a,SWP2a)*SWP+c(Tc1a,Tc2a)*Tc
-WUE~c(A1,A2)*A+c(E1,E2)*E
 '
 results_var <- lavaan::sem(
   ENVmodel_var,
   data = ALL,
   group = "Sp",
-  group.equal="regressions")
+cluster="IDplant")
 anova(results_free, results_var)
+
+###### E~SWP without clustering ######
+ENVmodel_var<-
+  'E~c(VPDleaf1e,VPDleaf2e)*VPDleaf+c(SWPe,SWPe)*SWP+c(Tc1e,Tc2e)*Tc
+  A~c(PAR1a,PAR2a)*PARc+c(VPDleaf1a,VPDleaf2a)*VPDleaf+c(SWP1a,SWP2a)*SWP+c(Tc1a,Tc2a)*Tc
+'
+results_var <- lavaan::sem(
+  ENVmodel_var,
+  data = ALL,
+  group = "Sp")
+anova(results_nocluster, results_var)
 
 ###### E~Tc ######
 ENVmodel_var<-
   'E~c(VPDleaf1e,VPDleaf2e)*VPDleaf+c(SWPe,SWPe)*SWP+c(Tce,Tce)*Tc
   A~c(PAR1a,PAR2a)*PARc+c(VPDleaf1a,VPDleaf2a)*VPDleaf+c(SWP1a,SWP2a)*SWP+c(Tc1a,Tc2a)*Tc
-WUE~c(A1,A2)*A+c(E1,E2)*E
 '
 results_var <- lavaan::sem(
   ENVmodel_var,
   data = ALL,
   group = "Sp",
-  group.equal="regressions")
+cluster="IDplant")
 anova(results_free, results_var)
 
 ###### A~PARc ######
 ENVmodel_var<-
   'E~c(VPDleaf1e,VPDleaf2e)*VPDleaf+c(SWP1e,SWP2e)*SWP+c(Tc1e,Tc2e)*Tc
   A~c(PARa,PARa)*PARc+c(VPDleaf1a,VPDleaf2a)*VPDleaf+c(SWP1a,SWP2a)*SWP+c(Tc1a,Tc2a)*Tc
-WUE~c(A1,A2)*A+c(E1,E2)*E
 '
 results_var <- lavaan::sem(
   ENVmodel_var,
   data = ALL,
   group = "Sp",
-  group.equal="regressions")
+cluster="IDplant")
 anova(results_free, results_var)
 
 ###### A~VPDleaf ######
 ENVmodel_var<-
   'E~c(VPDleaf1e,VPDleaf2e)*VPDleaf+c(SWP1e,SWP2e)*SWP+c(Tc1e,Tc2e)*Tc
   A~c(PAR1a,PAR2a)*PARc+c(VPDleafa,VPDleafa)*VPDleaf+c(SWP1a,SWP2a)*SWP+c(Tc1a,Tc2a)*Tc
-WUE~c(A1,A2)*A+c(E1,E2)*E
 '
 results_var <- lavaan::sem(
   ENVmodel_var,
   data = ALL,
   group = "Sp",
-  group.equal="regressions")
+cluster="IDplant")
 anova(results_free, results_var)
 
 ###### A~SWP ######
 ENVmodel_var<-
   'E~c(VPDleaf1e,VPDleaf2e)*VPDleaf+c(SWP1e,SWP2e)*SWP+c(Tc1e,Tc2e)*Tc
   A~c(PAR1a,PAR2a)*PARc+c(VPDleaf1a,VPDleaf2a)*VPDleaf+c(SWPa,SWPa)*SWP+c(Tc1a,Tc2a)*Tc
-WUE~c(A1,A2)*A+c(E1,E2)*E
 '
 results_var <- lavaan::sem(
   ENVmodel_var,
   data = ALL,
   group = "Sp",
-  group.equal="regressions")
+cluster="IDplant")
 anova(results_free, results_var)
 
 ###### A~Tc ######
 ENVmodel_var<-
   'E~c(VPDleaf1e,VPDleaf2e)*VPDleaf+c(SWP1e,SWP2e)*SWP+c(Tc1e,Tc2e)*Tc
   A~c(PAR1a,PAR2a)*PARc+c(VPDleaf1a,VPDleaf2a)*VPDleaf+c(SWP1a,SWP2a)*SWP+c(Tca,Tca)*Tc
-WUE~c(A1,A2)*A+c(E1,E2)*E
 '
 results_var <- lavaan::sem(
   ENVmodel_var,
   data = ALL,
   group = "Sp",
-  group.equal="regressions")
-anova(results_free, results_var)
-
-###### WUE~A ######
-ENVmodel_var<-
-  'E~c(VPDleaf1e,VPDleaf2e)*VPDleaf+c(SWP1e,SWP2e)*SWP+c(Tc1e,Tc2e)*Tc
-  A~c(PAR1a,PAR2a)*PARc+c(VPDleaf1a,VPDleaf2a)*VPDleaf+c(SWP1a,SWP2a)*SWP+c(Tc1a,Tc2a)*Tc
-WUE~c(Aw,Aw)*A+c(E1,E2)*E
-'
-results_var <- lavaan::sem(
-  ENVmodel_var,
-  data = ALL,
-  group = "Sp",
-  group.equal="regressions")
-anova(results_free, results_var)
-
-###### WUE~E ######
-ENVmodel_var<-
-  'E~c(VPDleaf1e,VPDleaf2e)*VPDleaf+c(SWP1e,SWP2e)*SWP+c(Tc1e,Tc2e)*Tc
-  A~c(PAR1a,PAR2a)*PARc+c(VPDleaf1a,VPDleaf2a)*VPDleaf+c(SWP1a,SWP2a)*SWP+c(Tc1a,Tc2a)*Tc
-WUE~c(A1,A2)*A+c(Ew,Ew)*E
-'
-results_var <- lavaan::sem(
-  ENVmodel_var,
-  data = ALL,
-  group = "Sp",
-  group.equal="regressions")
+cluster="IDplant")
 anova(results_free, results_var)
 
 ENVorden <- matrix(c(
@@ -208,18 +227,18 @@ ENVorden <- matrix(c(
   NA,   NA,      NA,       NA,       NA,    NA,    NA,
   NA,   NA,     "VPDleaf", NA,       NA,     NA,    NA,
   NA,   NA,      NA,       NA,       NA,    NA,    "E",
+  NA,   NA,      NA,       NA,        NA,     NA,   NA,
   "SWP",NA,      NA,       NA,        NA,     NA,   NA,
-  NA,   NA,      NA,       NA,      NA,     NA,    NA,
   NA,   NA,      NA,       NA,        NA,    NA,    NA,
   NA,   NA,      NA,       NA,        NA,    NA,    NA,
-  NA,   "PARc",      NA,       NA,        "A",    NA,    NA,
-  NA,   NA,      NA,       NA,        NA,    NA,    NA,
-  NA,   NA,      NA,       NA,        NA,    NA,    NA,
-  NA,   NA,      NA,       NA,        NA,   "WUE",   NA
+  NA,   NA,      NA,       NA,       "A",    NA,    NA,
+  NA,   NA,     NA,       NA,        NA,    NA,    NA,
+  NA,   "PARc",  NA,       NA,        NA,    NA,    NA,
+  NA,   NA,      NA,       NA,        NA,    NA,   NA
 ), nrow = 13, byrow = TRUE)
 
 
-tiff(paste("env_ILEFAG4_nogs.tiff"), width=5000, height=2500,res=600,units="px",compression="lzw")
+tiff(paste("env_ILEFAG4_nogsnoWUE.tiff"), width=5000, height=2500,res=600,units="px",compression="lzw")
 
 semPaths(
   results_free,
