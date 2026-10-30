@@ -19,6 +19,8 @@ LEAFAREA.csv
 Alldata.csv
   Combined dataset including all input data from different sources, grouped by 10 min slots
 
+VPD_Leafarea_coc.csv, VPD_Leafarea_fag.csv, VPD_Leafarea_rot.csv
+  Leaf area of all leaves in one individual per species
 
 ## b) Outputs
 
@@ -31,12 +33,23 @@ CombicolsD.csv
 dataset.csv
   Final working dataset used for figures and calculations, hourly means of the key output variables
 
+Leaftemp_Tcfilter.csv
+  Filtered dataset to perform model - measured comparisons for Tleaf
 
-## c) Codes
+leaf_area_subsampling_error_curves.tiff, leaf_area_subsampling_sample_sizes_by_error_threshold.csv
+  Output figure and table for the leaf area resampling test
+
+## c) Code
 
 VPDATOR_calculation.R
   Main R script for data arrangement, statistics and calculations, including the functions used to determine boundary layer conductance, modelled leaf temperature and chamber gas exchange
   
 VPDATOR_pathanalysis.R
   Additional R script for path analysis
+
+VPDbootstrap_reanalysis.R
+  Additional R script to perform bootstrap comparisons between curves and curve parameters
   
+VPD_LeafAreaSubsamplingTest.R
+  Additional R script to test for optimal leaf subsampling size to estimate leaf area
+
